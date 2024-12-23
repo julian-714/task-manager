@@ -1,0 +1,50 @@
+services:
+    backend:
+        container_name: backend
+        image: backend
+        working_dir: /var/www/html
+        restart: always
+        hostname: backend.local
+        env_file: "./laravel/.env"
+        build:
+            context: ./laravel
+            dockerfile: Dockerfile
+        ports:
+            - "8000:80"
+        volumes:
+            - ./laravel:/var/www/html
+        depends_on:
+            postgres_db:
+                condition: service_healthy
+
+    frontend:
+        container_name: react
+        build:
+            context: ./react
+            dockerfile: Dockerfile
+        ports:
+            - "3000:3000"
+        volumes:
+            - ./react:/app
+            - /app/node_modules
+        environment:
+            - NODE_ENV=development
+
+    postgres_db:
+        image: postgres:latest
+        container_name: postgres_db
+        ports:
+            - "5434:5432"
+        environment:
+            POSTGRES_DB: laravel
+            POSTGRES_USER: laravel
+            POSTGRES_PASSWORD: secret
+        healthcheck:
+            test: ["CMD-SHELL", "pg_isready -U laravel"]
+            interval: 10s
+            retries: 5
+        volumes:
+            - pgdata:/var/lib/postgresql/data
+
+volumes:
+    pgdata:
